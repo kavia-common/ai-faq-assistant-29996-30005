@@ -36,15 +36,15 @@ export class AppComponent {
       this.items.set(this.faqService.filteredFaqs());
     });
 
-    // When a FAQ is selected, ask backend for its answer and update the selected item with sources.
+    // When a FAQ is selected, simulate asking and update the selected item with (in-memory) answer and sources.
     effect(() => {
       const it = this.selected();
       if (!it) return;
 
-      // Kick off backend ask call
+      // Trigger in-memory ask
       this.faqService.ask({ question: it.question, faqId: it.id }, it.id);
 
-      // After some time the service will have the answer cached; we read it reactively on subsequent change detection
+      // Merge latest response back into selection
       const resp = this.faqService.getAnswerFor(it.id);
       if (resp) {
         const merged: FaqItem = {
@@ -52,21 +52,18 @@ export class AppComponent {
           answer: resp.answer ?? it.answer,
           sources: resp.sources ?? it.sources,
         };
-        // Update selection reference with enriched data
         this.selected.set(merged);
       }
     });
   }
 
   // PUBLIC_INTERFACE
-  /** Called when the search input changes. If the user typed a custom question, trigger a backend ask and preview it on the right. */
+  /** Called when the search input changes. If the user typed a custom question, simulate an answer and preview it on the right. */
   onSearchChange(v: string) {
     this.query.set(v);
 
-    // If user enters a non-empty question that doesn't match a selected FAQ, treat as custom ask
     const trimmed = v.trim();
     if (trimmed.length > 0) {
-      // Use a transient item to display the custom question and progressive answer.
       const temp: FaqItem = {
         id: 'custom',
         question: trimmed,
@@ -74,10 +71,9 @@ export class AppComponent {
         tags: [],
       };
       this.selected.set(temp);
-      // Request answer for custom input
+      // Simulated answer for custom input
       this.faqService.ask({ question: trimmed }, 'custom');
 
-      // Attempt to merge the latest response, if already available (subsequent change detection will also merge)
       const resp: AskResponse | null = this.faqService.getAnswerFor('custom');
       if (resp) {
         this.selected.set({
@@ -92,8 +88,6 @@ export class AppComponent {
   // PUBLIC_INTERFACE
   /** Called when a FAQ item is selected from the list. */
   onSelect(item: FaqItem) {
-    // Show initial selection immediately, answer will be replaced on arrival.
     this.selected.set({ ...item, answer: item.answer || 'Loading answer…' });
-    // The effect above will trigger the ask and merge answer/sources.
   }
 }

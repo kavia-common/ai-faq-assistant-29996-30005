@@ -1,14 +1,12 @@
-import { Injectable, signal, computed, inject } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Injectable, signal, computed } from '@angular/core';
 import { FaqItem } from '../theme';
-import { environment } from '../../environments/environment';
 
-/** Data shape returned by the backend for a single answer. */
+/** Data shape for an answer in the in-memory model. */
 export interface AskResponse {
   id?: string;
   question: string;
   answer: string;
-  // Additional citations/sources returned by the backend.
+  // Optional citations/sources provided by the in-memory model.
   sources?: Array<{
     title?: string;
     url?: string;
@@ -21,30 +19,58 @@ export interface AskResponse {
 // PUBLIC_INTERFACE
 @Injectable({ providedIn: 'root' })
 /**
- * HTTP-backed service for FAQs and AI answers.
- * Integration points:
- * - GET `${apiBaseUrl}/faqs` to fetch FAQ list
- * - POST `${apiBaseUrl}/ask` with { question, faqId? } to fetch generated answer
- *
- * Error handling:
- * - Centralized here; components only deal with friendly states.
+ * In-memory service for FAQs and AI answers.
+ * Notes:
+ * - No network calls are made. All data is served locally.
+ * - This replaces previous backend integration (GET /api/faqs, POST /api/ask).
  */
 export class FaqService {
-  private readonly http = inject(HttpClient);
+  /** Seeded in-memory FAQs. Extend freely as needed. */
+  private readonly allFaqs = signal<FaqItem[]>([
+    {
+      id: '1',
+      question: 'How do I use the search to find FAQs?',
+      answer:
+        'Type keywords into the search bar. Results update instantly to match questions and tags.',
+      tags: ['search', 'tips'],
+    },
+    {
+      id: '2',
+      question: 'Can I view AI-generated answers without a backend?',
+      answer:
+        'Yes. This demo uses an in-memory service to provide answers without calling a server.',
+      tags: ['ai', 'offline', 'demo'],
+    },
+    {
+      id: '3',
+      question: 'How do I run the app locally?',
+      answer:
+        'Install dependencies and run ng serve. Open http://localhost:3000/. No backend is required.',
+      tags: ['setup', 'local', 'serve'],
+    },
+  ]);
 
-  // Configurable base URL from environment.ts/environment.prod.ts
-  private readonly apiBase = environment.apiBaseUrl;
-
-  /** Local cache of all FAQs loaded from the backend. */
-  private readonly allFaqs = signal<FaqItem[]>([]);
   /** Current search query used for client-side filtering. */
   private readonly query = signal<string>('');
-  /** Last answer received from the backend, keyed by faq id (or 'custom'). */
+  /**
+   * Simulated in-memory answers keyed by faq id or 'custom'.
+   * This can be extended to return richer responses or pseudo-streamed updates.
+   */
   private readonly answers = signal<Record<string, AskResponse>>({});
 
   constructor() {
-    // Load FAQs on service creation. In SSR, guard against network if needed.
-    this.refreshFaqs();
+    // Pre-populate answers for the seeded FAQs for a snappy UX.
+    for (const it of this.allFaqs()) {
+      this.answers.set({
+        ...this.answers(),
+        [it.id]: {
+          id: it.id,
+          question: it.question,
+          answer: it.answer,
+          sources: [],
+        },
+      });
+    }
   }
 
   // PUBLIC_INTERFACE
@@ -78,36 +104,18 @@ export class FaqService {
 
   // PUBLIC_INTERFACE
   /**
-   * Refresh the FAQ list from the backend.
-   * GET /api/faqs -> Array<FaqItem>
+   * Refresh FAQs.
+   * In-memory mode: no-op, but kept for API compatibility.
    */
   refreshFaqs() {
-    this.http.get<FaqItem[]>(`${this.apiBase}/faqs`).subscribe({
-      next: (items) => {
-        // Defensive: normalize to expected fields
-        const normalized = (items || []).map((it, idx) => ({
-          id: it.id ?? String(idx + 1),
-          question: it.question ?? '',
-          answer: it.answer ?? '',
-          tags: it.tags ?? [],
-          // Any other fields are ignored here intentionally
-        }));
-        this.allFaqs.set(normalized);
-      },
-      error: (err: HttpErrorResponse) => {
-        console.error('Failed to load FAQs', err);
-        // Keep previous value; optionally set to [] on first load failure
-        if (!this.allFaqs().length) {
-          this.allFaqs.set([]);
-        }
-      },
-    });
+    // No network call in standalone mode.
+    return;
   }
 
   // PUBLIC_INTERFACE
   /**
-   * Ask the backend for an answer.
-   * POST /api/ask -> AskResponse
+   * Simulate asking for an answer. In-memory: we compute a deterministic answer
+   * to mimic an AI response, and store it under the given cache key.
    * @param payload Object containing question and optional faqId
    * @param cacheKey Key to store the result under; defaults to faqId or 'custom'
    */
@@ -116,23 +124,24 @@ export class FaqService {
     cacheKey?: string
   ) {
     const key = cacheKey ?? payload.faqId ?? 'custom';
-    this.http.post<AskResponse>(`${this.apiBase}/ask`, payload).subscribe({
-      next: (resp) => {
-        // Store by key for quick retrieval
-        this.answers.set({ ...this.answers(), [key]: resp });
-      },
-      error: (err: HttpErrorResponse) => {
-        console.error('Failed to get answer', err);
-        // Provide a graceful fallback answer for the UI
-        const fallback: AskResponse = {
-          question: payload.question,
-          answer:
-            'Sorry, we could not retrieve an answer at this time. Please try again later.',
-          sources: [],
-        };
-        this.answers.set({ ...this.answers(), [key]: fallback });
-      },
-    });
+
+    // Simple simulated answer logic
+    const baseAnswer =
+      'This is a simulated answer. In the full version, a backend model would generate a tailored response.';
+    const answerText =
+      payload.faqId && this.answers()[payload.faqId]
+        ? this.answers()[payload.faqId].answer
+        : `${baseAnswer}\n\nYour question: "${payload.question}"`;
+
+    const resp: AskResponse = {
+      id: key,
+      question: payload.question,
+      answer: answerText,
+      sources: [],
+    };
+
+    // Store the response
+    this.answers.set({ ...this.answers(), [key]: resp });
   }
 
   // PUBLIC_INTERFACE

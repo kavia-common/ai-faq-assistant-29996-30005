@@ -1,6 +1,10 @@
-# Angular
+# Angular (Frontend-Only Standalone)
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.2.1.
+
+Important:
+- This app runs entirely in the browser with an in-memory data service. There is no backend container, and the app does not call `/api/faqs` or `/api/ask`.
+- To re-enable backend integration in the future, replace the in-memory logic in `src/app/services/faq.service.ts` with HTTP calls and reintroduce an API.
 
 ## Development server
 
@@ -10,7 +14,10 @@ To start a local development server, run:
 ng serve
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+By default the dev server runs on port 3000 in this repo’s config. Open your browser at:
+- http://localhost:3000/
+
+The application will automatically reload whenever you modify any source files.
 
 ## Code scaffolding
 
@@ -38,21 +45,17 @@ This will compile your project and store the build artifacts in the `dist/` dire
 
 ## Running unit tests
 
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use:
 
 ```bash
 ng test
 ```
 
-## Running end-to-end tests
+## Additional Notes on Standalone Mode
 
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+- The `FaqService` uses a small in-memory dataset and simulates “ask” responses without network requests.
+- Environment files keep an `apiBaseUrl` key for compatibility, but it’s empty and unused in standalone mode.
+- Components listen to the service’s signals, so the UI behaves the same without a backend.
 
 ## Additional Resources
 
