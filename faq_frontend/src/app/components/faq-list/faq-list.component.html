@@ -1,0 +1,27 @@
+<div
+  class="list"
+  role="listbox"
+  tabindex="0"
+  aria-label="Frequently Asked Questions"
+  (keydown)="onKeyDown($event)"
+>
+  <div
+    class="item"
+    *ngFor="let it of items(); let i = index; trackBy: trackById"
+    role="option"
+    [attr.aria-selected]="selectedId() === it.id"
+    [ngClass]="{ selected: selectedId() === it.id }"
+    (click)="onClick(it)"
+    (mouseenter)="hoverIndex.set(i)"
+    (mouseleave)="hoverIndex.set(-1)"
+  >
+    <div class="qrow">
+      <span class="bullet" aria-hidden="true"></span>
+      <span class="question">{{ it.question }}</span>
+    </div>
+    <div class="tags" *ngIf="it.tags?.length">
+      <span class="tag" *ngFor="let t of it.tags">{{ t }}</span>
+    </div>
+  </div>
+  <div *ngIf="!items()?.length" class="empty">No questions match your search.</div>
+</div>

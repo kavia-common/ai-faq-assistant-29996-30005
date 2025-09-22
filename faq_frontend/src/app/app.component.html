@@ -1,3 +1,34 @@
-<div class="container">
-  <h1>{{ title }}</h1>
-</div>
+<app-top-nav [title]="title"></app-top-nav>
+
+<main class="page" role="main">
+  <section class="hero">
+    <div class="hero-inner">
+      <h1 class="headline">Find answers instantly</h1>
+      <p class="sub">Search FAQs and view AI-generated answers with a modern, responsive interface.</p>
+      <app-search-bar
+        class="search-wrap"
+        [model]="query()"
+        (modelChange)="onSearchChange($event)"
+        placeholder="Search questions, topics, or tags..."
+      ></app-search-bar>
+    </div>
+  </section>
+
+  <section class="content-grid" aria-label="FAQ Content">
+    <div class="left">
+      <h2 class="section-title">Questions</h2>
+      <div class="scroll">
+        <app-faq-list
+          [items]="items()"
+          [selectedId]="selectedId()"
+          (select)="onSelect($event)"
+        ></app-faq-list>
+      </div>
+    </div>
+
+    <div class="right">
+      <h2 class="section-title accent">Answer</h2>
+      <app-answer-panel [item]="selected()"></app-answer-panel>
+    </div>
+  </section>
+</main>

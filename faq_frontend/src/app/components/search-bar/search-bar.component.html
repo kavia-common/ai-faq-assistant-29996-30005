@@ -1,0 +1,18 @@
+<label class="search" aria-label="Search FAQs">
+  <span class="icon" aria-hidden="true">
+    <!-- Magnifying glass -->
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="18" height="18" aria-hidden="true">
+      <circle cx="11" cy="11" r="7" stroke-width="2"></circle>
+      <line x1="20" y1="20" x2="16.65" y2="16.65" stroke-width="2"></line>
+    </svg>
+  </span>
+  <input
+    type="text"
+    class="input"
+    [placeholder]="placeholder()"
+    [ngModel]="model()"
+    (ngModelChange)="onInput($event)"
+    autocomplete="off"
+    spellcheck="false"
+  />
+</label>

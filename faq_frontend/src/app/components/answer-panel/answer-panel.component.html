@@ -1,0 +1,21 @@
+<div class="panel" [class.empty]="!item()">
+  <ng-container *ngIf="item(); else emptyState">
+    <header class="header">
+      <div class="dot" aria-hidden="true"></div>
+      <h2 class="title">{{ item()!.question }}</h2>
+    </header>
+    <article class="content" aria-live="polite">
+      <p>{{ item()!.answer }}</p>
+    </article>
+  </ng-container>
+
+  <ng-template #emptyState>
+    <div class="placeholder">
+      <div class="ghost-dot" aria-hidden="true"></div>
+      <div>
+        <h3>Select a question</h3>
+        <p class="muted">Choose a question from the left to view its AI-generated answer here.</p>
+      </div>
+    </div>
+  </ng-template>
+</div>

@@ -1,0 +1,56 @@
+:host {
+  display: block;
+}
+
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(249, 250, 251, 1));
+  border-bottom: 1px solid #E5E7EB;
+  backdrop-filter: saturate(150%) blur(6px);
+}
+
+.nav-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  background: #2563EB;
+  box-shadow: 0 0 0 4px rgba(37,99,235,0.15), 0 6px 18px rgba(37,99,235,0.35);
+}
+
+.brand-name {
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: #111827;
+}
+
+.actions .link {
+  color: #2563EB;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 8px 10px;
+  border-radius: 8px;
+  transition: all .2s ease;
+}
+
+.actions .link:hover,
+.actions .link:focus-visible {
+  background: rgba(37,99,235,0.08);
+  outline: none;
+}
