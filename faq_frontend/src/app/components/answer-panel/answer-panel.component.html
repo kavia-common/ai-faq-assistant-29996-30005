@@ -6,6 +6,26 @@
     </header>
     <article class="content" aria-live="polite">
       <p>{{ item()!.answer }}</p>
+
+      <!-- Render sources/citations if provided by backend -->
+      <section *ngIf="item()!.sources?.length">
+        <h3 class="muted" style="margin: 14px 0 8px;">Sources</h3>
+        <ul style="padding-left: 1rem;">
+          <li *ngFor="let s of item()!.sources">
+            <div>
+              <a *ngIf="s.url; else plainTitle" [href]="s.url" target="_blank" rel="noopener noreferrer">
+                {{ s.title || s.url }}
+              </a>
+              <ng-template #plainTitle>
+                <span>{{ s.title || 'Source' }}</span>
+              </ng-template>
+            </div>
+            <div class="muted" *ngIf="s.snippet" style="font-size: 0.9rem;">
+              {{ s.snippet }}
+            </div>
+          </li>
+        </ul>
+      </section>
     </article>
   </ng-container>
 

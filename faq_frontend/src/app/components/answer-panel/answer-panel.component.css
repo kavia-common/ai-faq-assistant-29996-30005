@@ -65,3 +65,11 @@
 .muted {
   color: #6B7280;
 }
+
+/* Tidy up sources list */
+.content ul {
+  margin: 0;
+}
+.content li {
+  margin: 0 0 8px 0;
+}

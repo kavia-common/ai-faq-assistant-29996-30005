@@ -1,49 +1,51 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { FaqItem } from '../theme';
+import { environment } from '../../environments/environment';
+
+/** Data shape returned by the backend for a single answer. */
+export interface AskResponse {
+  id?: string;
+  question: string;
+  answer: string;
+  // Additional citations/sources returned by the backend.
+  sources?: Array<{
+    title?: string;
+    url?: string;
+    snippet?: string;
+  }>;
+  // Optional raw metadata passthrough.
+  meta?: Record<string, unknown>;
+}
 
 // PUBLIC_INTERFACE
 @Injectable({ providedIn: 'root' })
-/** Provides FAQ items and client-side search. This is a mock in-memory data provider for the initial UI. */
+/**
+ * HTTP-backed service for FAQs and AI answers.
+ * Integration points:
+ * - GET `${apiBaseUrl}/faqs` to fetch FAQ list
+ * - POST `${apiBaseUrl}/ask` with { question, faqId? } to fetch generated answer
+ *
+ * Error handling:
+ * - Centralized here; components only deal with friendly states.
+ */
 export class FaqService {
-  private readonly allFaqs = signal<FaqItem[]>([
-    {
-      id: '1',
-      question: 'What is this AI-powered FAQ app?',
-      answer:
-        'It is a modern web interface that lets you browse frequently asked questions and see AI-generated answers quickly.',
-      tags: ['general', 'about'],
-    },
-    {
-      id: '2',
-      question: 'How do I search for a question?',
-      answer:
-        'Use the search bar at the top. Results update instantly as you type, matching question text and tags.',
-      tags: ['search', 'usage'],
-    },
-    {
-      id: '3',
-      question: 'Can I use this on mobile devices?',
-      answer:
-        'Yes. The layout is responsive, with a scrollable FAQ list and an answer panel optimized for smaller screens.',
-      tags: ['mobile', 'responsive'],
-    },
-    {
-      id: '4',
-      question: 'How are answers generated?',
-      answer:
-        'Answers are produced by AI and can be integrated with a backend in future iterations. This build uses mock data only.',
-      tags: ['ai', 'architecture'],
-    },
-    {
-      id: '5',
-      question: 'Is there keyboard accessibility?',
-      answer:
-        'Yes. You can navigate questions using Tab and activate selections with Enter. Focus styles are visible.',
-      tags: ['accessibility', 'a11y'],
-    },
-  ]);
+  private readonly http = inject(HttpClient);
 
+  // Configurable base URL from environment.ts/environment.prod.ts
+  private readonly apiBase = environment.apiBaseUrl;
+
+  /** Local cache of all FAQs loaded from the backend. */
+  private readonly allFaqs = signal<FaqItem[]>([]);
+  /** Current search query used for client-side filtering. */
   private readonly query = signal<string>('');
+  /** Last answer received from the backend, keyed by faq id (or 'custom'). */
+  private readonly answers = signal<Record<string, AskResponse>>({});
+
+  constructor() {
+    // Load FAQs on service creation. In SSR, guard against network if needed.
+    this.refreshFaqs();
+  }
 
   // PUBLIC_INTERFACE
   /** Sets the current search query string used for client-side filtering. */
@@ -57,6 +59,12 @@ export class FaqService {
     return this.query();
   }
 
+  // PUBLIC_INTERFACE
+  /** Returns the complete FAQ list (unfiltered). */
+  getAllFaqs() {
+    return this.allFaqs();
+  }
+
   readonly filteredFaqs = computed(() => {
     const q = this.query().trim().toLowerCase();
     const list = this.allFaqs();
@@ -67,4 +75,71 @@ export class FaqService {
       return inQuestion || inTags;
     });
   });
+
+  // PUBLIC_INTERFACE
+  /**
+   * Refresh the FAQ list from the backend.
+   * GET /api/faqs -> Array<FaqItem>
+   */
+  refreshFaqs() {
+    this.http.get<FaqItem[]>(`${this.apiBase}/faqs`).subscribe({
+      next: (items) => {
+        // Defensive: normalize to expected fields
+        const normalized = (items || []).map((it, idx) => ({
+          id: it.id ?? String(idx + 1),
+          question: it.question ?? '',
+          answer: it.answer ?? '',
+          tags: it.tags ?? [],
+          // Any other fields are ignored here intentionally
+        }));
+        this.allFaqs.set(normalized);
+      },
+      error: (err: HttpErrorResponse) => {
+        console.error('Failed to load FAQs', err);
+        // Keep previous value; optionally set to [] on first load failure
+        if (!this.allFaqs().length) {
+          this.allFaqs.set([]);
+        }
+      },
+    });
+  }
+
+  // PUBLIC_INTERFACE
+  /**
+   * Ask the backend for an answer.
+   * POST /api/ask -> AskResponse
+   * @param payload Object containing question and optional faqId
+   * @param cacheKey Key to store the result under; defaults to faqId or 'custom'
+   */
+  ask(
+    payload: { question: string; faqId?: string },
+    cacheKey?: string
+  ) {
+    const key = cacheKey ?? payload.faqId ?? 'custom';
+    this.http.post<AskResponse>(`${this.apiBase}/ask`, payload).subscribe({
+      next: (resp) => {
+        // Store by key for quick retrieval
+        this.answers.set({ ...this.answers(), [key]: resp });
+      },
+      error: (err: HttpErrorResponse) => {
+        console.error('Failed to get answer', err);
+        // Provide a graceful fallback answer for the UI
+        const fallback: AskResponse = {
+          question: payload.question,
+          answer:
+            'Sorry, we could not retrieve an answer at this time. Please try again later.',
+          sources: [],
+        };
+        this.answers.set({ ...this.answers(), [key]: fallback });
+      },
+    });
+  }
+
+  // PUBLIC_INTERFACE
+  /**
+   * Retrieve the last AskResponse for the provided key (faq id or 'custom').
+   */
+  getAnswerFor(key: string) {
+    return this.answers()[key] ?? null;
+  }
 }

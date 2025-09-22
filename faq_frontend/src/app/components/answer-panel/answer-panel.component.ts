@@ -1,12 +1,12 @@
 import { Component, input } from '@angular/core';
-import { NgIf } from '@angular/common';
+import { NgIf, NgFor } from '@angular/common';
 import { FaqItem } from '../../theme';
 
 // PUBLIC_INTERFACE
 @Component({
   selector: 'app-answer-panel',
   standalone: true,
-  imports: [NgIf],
+  imports: [NgIf, NgFor],
   templateUrl: './answer-panel.component.html',
   styleUrls: ['./answer-panel.component.css'],
 })

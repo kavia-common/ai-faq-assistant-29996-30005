@@ -24,9 +24,26 @@ export const THEME = {
 };
 
 // Types
+// PUBLIC_INTERFACE
+export interface FaqSource {
+  /** Title of the source, if available. */
+  title?: string;
+  /** URL to the source/citation. */
+  url?: string;
+  /** Short snippet/summary provided by backend. */
+  snippet?: string;
+}
+
+// PUBLIC_INTERFACE
 export interface FaqItem {
+  /** Unique identifier of the FAQ. */
   id: string;
+  /** The question text. */
   question: string;
+  /** The latest known answer for this question (initial or from backend). */
   answer: string;
+  /** Optional tags for filtering. */
   tags?: string[];
+  /** Optional citations/sources related to the answer (from backend). */
+  sources?: FaqSource[];
 }
